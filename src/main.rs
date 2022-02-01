@@ -1,7 +1,14 @@
+// original: https://salsa.debian.org/debian/sysvbanner/-/blob/master/sysvbanner.c
+
+/*****************************************************************
+ *
+ * There is no copyright or responsibility accepted for the use
+ * of this software.
+ *
+ *****************************************************************/
+
 use std::env;
 use std::io::{stdout, BufWriter, Write};
-
-// original: https://salsa.debian.org/debian/sysvbanner/-/blob/master/sysvbanner.c
 
 const GLYPHS: &[&[u8]] = &[
     b"         ###  ### ###  # #   ##### ###   #  ##     ###  ",
@@ -100,21 +107,22 @@ fn main() {
         let len = arg.len().min(10);
         for a in 0..W {
             // line
-            let mut line: [u8; 80] = [0; 80];
+            let mut line = [0u8; 80];
             for b in 0..len {
                 let ind = if arg[b] >= b' ' { arg[b] - b' ' } else { 0 } as usize;
                 let c = GLYPHS[(ind / 8 * W) + a];
-                line[(b * 8)..(b * 8 + W)].clone_from_slice(&c[(ind % 8 * W)..((ind % 8 * W) + W)]);
-                line[b * 8 + W] = b' ';
+                let src_start = b * 8;
+                let dest_start = ind % 8 * W;
+                line[src_start..(src_start + W)].clone_from_slice(&c[dest_start..(dest_start + W)]);
+                line[src_start + W] = b' ';
             }
-            for b in (0..(len * 8 - 1)).rev() {
-                if line[b] != b' ' {
-                    break;
-                }
-                line[b] = b'\0';
-            }
-            line[line.len() - 1] = b'\n';
+
+            let line = match line.iter().rposition(|&x| x != b' ') {
+                Some(i) => &line[0..i + 1],
+                None => &line,
+            };
             out.write(&line).unwrap();
+            out.write(b"\n").unwrap();
         }
         out.write(b"\n").unwrap();
     }
